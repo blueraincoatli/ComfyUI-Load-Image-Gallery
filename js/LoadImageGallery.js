@@ -221,38 +221,7 @@ style.textContent = `
         document.head.append(style);
         let FirstRun = true;
         let tabsData = { tabs: [], image_tabs: {} };
-		async function preloadThumbnails(filenames) {
-			// Create a cache for thumbnails
-			if (!window.thumbnailCache) {
-				window.thumbnailCache = new Map();
-			}
-			
-			// Create batches of 10 thumbnails to avoid too many simultaneous requests
-			const batchSize = 10;
-			const batches = [];
-			
-			for (let i = 0; i < filenames.length; i += batchSize) {
-				batches.push(filenames.slice(i, i + batchSize));
-			}
-			
-			// Process each batch
-			for (const batch of batches) {
-				await Promise.all(batch.map(async (filename) => {
-					try {
-						const response = await fetch(`/get_thumbnail/${encodeURIComponent(filename)}`);
-						if (response.ok) {
-							const blob = await response.blob();
-							const url = URL.createObjectURL(blob);
-							window.thumbnailCache.set(filename, url);
-						}
-					} catch (error) {
-						console.error(`Error preloading thumbnail for ${filename}:`, error);
-					}
-				}));
-			}
-			
-			console.log(`Preloaded ${window.thumbnailCache.size} thumbnails`);
-		}
+		
 		async function preloadThumbnailsBatch(filenames) {
 			if (!window.thumbnailCache) {
 				window.thumbnailCache = new Map();
@@ -466,66 +435,6 @@ style.textContent = `
 			}
 		}
 
-        // Save thumbnail to server
-        async function saveThumbnail(filename, data) {
-            try {
-                const response = await fetch('/save_thumbnail', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ filename, data }),
-                });
-                return response.ok;
-            } catch (error) {
-                console.error("Error saving thumbnail:", error);
-                return false;
-            }
-        }
-
-        // Create thumbnail from image
-        function createThumbnail(file) {
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = 80;
-                    canvas.height = 80;
-
-                    const aspectRatio = img.width / img.height;
-                    let srcWidth, srcHeight, srcX, srcY;
-
-                    if (aspectRatio > 1) {
-                        srcHeight = img.height;
-                        srcWidth = srcHeight;
-                        srcX = (img.width - srcWidth) / 2;
-                        srcY = 0;
-                    } else {
-                        srcWidth = img.width;
-                        srcHeight = srcWidth;
-                        srcX = 0;
-                        srcY = (img.height - srcHeight) / 2;
-                    }
-
-                    ctx.drawImage(img, srcX, srcY, srcWidth, srcHeight, 0, 0, 80, 80);
-                    
-                    // Use WebP if browser supports it
-                    const dataUrl = canvas.toDataURL("image/webp", 0.8);
-                    
-                    // Save thumbnail to server
-                    saveThumbnail(file, dataUrl).then(() => {
-                        // Return URL for loading thumbnail from server
-                        resolve(`/get_thumbnail/${encodeURIComponent(file)}?t=${Date.now()}`);
-                    }).catch(error => {
-                        console.error("Error saving thumbnail:", error);
-                        // Return local thumbnail in case of error
-                        resolve(dataUrl);
-                    });
-                };
-                img.src = `http://${location.host}/view?filename=${encodeURIComponent(file)}&type=input`;
-            });
-        }
 
         // Check if thumbnails service is available
         async function checkThumbnailsService() {
@@ -957,73 +866,73 @@ style.textContent = `
 						ctx.root.style.display = 'grid';
 						ctx.root.style.gridTemplateColumns = 'repeat(4, 88px)';
 						// Preload all thumbnails at once
-						preloadThumbnailsBatch(values).then(() => {
-							// Continue with gallery setup
-
+						loadTabsData().then(() => {
+							return preloadThumbnailsBatch(values);
+						}).then(() => {
 							if (displayedItems.length > 30) {
 								UpdatePosition();
 							}
 
-                        // Add container for custom tabs
-                        const input = ctx.root.querySelector('input');
-                        const customTabsContainer = document.createElement('div');
-                        customTabsContainer.className = 'custom-tabs-container';
-                        customTabsContainer.style.display = 'flex';
-                        customTabsContainer.style.alignItems = 'center';
-                        customTabsContainer.style.marginBottom = '10px';
-                        customTabsContainer.style.overflowX = 'auto';
-                        customTabsContainer.style.padding = '5px 0';
+							// Add container for custom tabs
+							const input = ctx.root.querySelector('input');
+							const customTabsContainer = document.createElement('div');
+							customTabsContainer.className = 'custom-tabs-container';
+							customTabsContainer.style.display = 'flex';
+							customTabsContainer.style.alignItems = 'center';
+							customTabsContainer.style.marginBottom = '10px';
+							customTabsContainer.style.overflowX = 'auto';
+							customTabsContainer.style.padding = '5px 0';
 
-                        // Add "All" tab
-                        const allTab = document.createElement('button');
-                        allTab.className = 'tab custom-tab active';
-                        allTab.textContent = 'All';
-                        allTab.onclick = () => {
-                            customTabsContainer.querySelectorAll('.custom-tab').forEach(tab => tab.classList.remove('active'));
-                            allTab.classList.add('active');
-                            activeCustomTab = null;
+							// Add "All" tab
+							const allTab = document.createElement('button');
+							allTab.className = 'tab custom-tab active';
+							allTab.textContent = 'All';
+							allTab.onclick = () => {
+								customTabsContainer.querySelectorAll('.custom-tab').forEach(tab => tab.classList.remove('active'));
+								allTab.classList.add('active');
+								activeCustomTab = null;
 
-                            // Show all images
-                            items.forEach(entry => {
-                                entry.style.display = 'block';
-                            });
-                        };
-                        customTabsContainer.appendChild(allTab);
+								// Show all images
+								items.forEach(entry => {
+									entry.style.display = 'block';
+								});
+							};
+							customTabsContainer.appendChild(allTab);
 
-                        // Add custom tabs
-                        tabsData.tabs.forEach(tabName => {
-                            const tab = document.createElement('button');
-                            tab.className = 'tab custom-tab';
-                            tab.textContent = tabName;
-                            tab.onclick = () => {
-                                customTabsContainer.querySelectorAll('.custom-tab').forEach(tab => tab.classList.remove('active'));
-                                tab.classList.add('active');
-                                activeCustomTab = tabName;
+							// Add custom tabs
+							tabsData.tabs.forEach(tabName => {
+								const tab = document.createElement('button');
+								tab.className = 'tab custom-tab';
+								tab.textContent = tabName;
+								tab.onclick = () => {
+									customTabsContainer.querySelectorAll('.custom-tab').forEach(tab => tab.classList.remove('active'));
+									tab.classList.add('active');
+									activeCustomTab = tabName;
 
-                                // Filter images by tab
-                                items.forEach((entry, idx) => {
-                                    const filename = values[idx];
-                                    if (tabsData.image_tabs[filename] && tabsData.image_tabs[filename].includes(tabName)) {
-                                        entry.style.display = 'block';
-                                    } else {
-                                        entry.style.display = 'none';
-                                    }
-                                });
-                            };
-                            customTabsContainer.appendChild(tab);
-                        });
+									// Filter images by tab
+									items.forEach((entry, idx) => {
+										const filename = values[idx];
+										if (tabsData.image_tabs[filename] && tabsData.image_tabs[filename].includes(tabName)) {
+											entry.style.display = 'block';
+										} else {
+											entry.style.display = 'none';
+										}
+									});
+								};
+								customTabsContainer.appendChild(tab);
+							});
 
-                        // Add edit tabs button
-                        const editButton = document.createElement('button');
-                        editButton.className = 'tabs-edit-button';
-                        editButton.textContent = '⚙️';
-                        editButton.title = 'Manage Tabs';
-                        editButton.onclick = () => {
-                            showTabsEditModal(ctx.root);
-                        };
-                        customTabsContainer.appendChild(editButton);
+							// Add edit tabs button
+							const editButton = document.createElement('button');
+							editButton.className = 'tabs-edit-button';
+							editButton.textContent = '⚙️';
+							editButton.title = 'Manage Tabs';
+							editButton.onclick = () => {
+								showTabsEditModal(ctx.root);
+							};
+							customTabsContainer.appendChild(editButton);
 
-                        input.insertAdjacentElement('afterend', customTabsContainer);
+							input.insertAdjacentElement('afterend', customTabsContainer);
 
                         items.forEach(async (entry, index) => {
 							const filename = values[index];
@@ -1035,7 +944,8 @@ style.textContent = `
 							if (!thumbnailUrl) {
 								thumbnailUrl = await getThumbnail(filename);
 								if (!thumbnailUrl) {
-									thumbnailUrl = await createThumbnail(filename);
+									//thumbnailUrl = await createThumbnail(filename);
+									thumbnailUrl = `/get_thumbnail/${encodeURIComponent(filename)}?t=${Date.now()}`;
 								}
 							}
 
