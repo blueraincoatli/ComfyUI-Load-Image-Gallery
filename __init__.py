@@ -160,7 +160,7 @@ except ImportError:
 async def delete_file(request):
     try:
         data = await request.json()
-        filename = data.get('filename').replace("/", "\\")
+        filename = os.path.normpath(data.get('filename'))
         filenamejson = data.get('filename')
         if not filename:
             return web.Response(status=400, text="Filename not provided")
