@@ -532,7 +532,10 @@ style.textContent = `
                         if (index !== -1) {
                             tabsData.tabs.splice(index, 1);
                         }
-
+						// Remove tab display name if it exists
+						if (tabsData.tab_display_names && tabName in tabsData.tab_display_names) {
+							delete tabsData.tab_display_names[tabName];
+						}
                         // Remove tab from images
                         Object.keys(tabsData.image_tabs).forEach(filename => {
                             const tabIndex = tabsData.image_tabs[filename].indexOf(tabName);
