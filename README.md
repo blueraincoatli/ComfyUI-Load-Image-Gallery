@@ -1,6 +1,5 @@
 # Gallery&Tabs
-Updated for better optimization and new Tabs feature.
+
 ## Features
-- Image Gallery for Load Image Node
-- Tabs for Load Checkpoint/Lora/etc Nodes🆕
-![v4](https://github.com/user-attachments/assets/023a11d8-4140-4bc1-85ad-a968821e0412)
+- Image Gallery and Tabs
+![1942](https://github.com/user-attachments/assets/63d6606b-6f3f-4086-8f31-652fd0c2f908)
