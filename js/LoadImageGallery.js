@@ -493,32 +493,25 @@ style.textContent = `
 
                 const tabNameSpan = document.createElement('span');
                 tabNameSpan.className = 'tab-item-name';
-                tabNameSpan.textContent = tabName;
-                tabItem.appendChild(tabNameSpan);
+                tabNameSpan.textContent = tabsData.tab_display_names?.[tabName] || tabName;
+				tabItem.appendChild(tabNameSpan)
 
                 const tabActions = document.createElement('div');
                 tabActions.className = 'tab-item-actions';
 
                 // Rename button
-                const renameButton = document.createElement('button');
-                renameButton.className = 'tab-item-button';
-                renameButton.textContent = 'Rename';
-                renameButton.onclick = () => {
-                    const newName = prompt('Enter new tab name:', tabName);
-                    if (newName && newName !== tabName) {
-                        // Update tab name in the list
-                        const index = tabsData.tabs.indexOf(tabName);
-                        if (index !== -1) {
-                            tabsData.tabs[index] = newName;
-                        }
+				const renameButton = document.createElement('button');
+				renameButton.className = 'tab-item-button';
+				renameButton.textContent = 'Rename';
+				renameButton.onclick = () => {
+					const currentDisplayName = tabsData.tab_display_names?.[tabName] || tabName;
+					const newName = prompt('Enter new tab name:', currentDisplayName);
+					if (newName && newName !== currentDisplayName) {
 
-                        // Update tab name in images
-                        Object.keys(tabsData.image_tabs).forEach(filename => {
-                            const tabIndex = tabsData.image_tabs[filename].indexOf(tabName);
-                            if (tabIndex !== -1) {
-                                tabsData.image_tabs[filename][tabIndex] = newName;
-                            }
-                        });
+						if (!tabsData.tab_display_names) {
+							tabsData.tab_display_names = {};
+						}
+						tabsData.tab_display_names[tabName] = newName;
 
                         // Update UI
                         saveTabsData().then(() => {
@@ -580,7 +573,10 @@ style.textContent = `
             addTabButton.onclick = () => {
                 const tabName = newTabInput.value.trim();
                 if (tabName && !tabsData.tabs.includes(tabName)) {
-                    tabsData.tabs.push(tabName);
+					if (!tabsData.tab_display_names) {
+						tabsData.tab_display_names = {};
+					}
+					tabsData.tab_display_names[tabName] = tabName;
                     saveTabsData().then(() => {
                         showTabsEditModal(container);
                     });
@@ -635,7 +631,7 @@ style.textContent = `
             tabsData.tabs.forEach(tabName => {
                 const menuItem = document.createElement('div');
                 menuItem.className = 'tab-menu-item';
-                menuItem.textContent = tabName;
+                menuItem.textContent = tabsData.tab_display_names?.[tabName] || tabName;
 
                 // Check if the image is in this tab
                 if (tabsData.image_tabs[filename] && tabsData.image_tabs[filename].includes(tabName)) {
@@ -903,7 +899,8 @@ style.textContent = `
 							tabsData.tabs.forEach(tabName => {
 								const tab = document.createElement('button');
 								tab.className = 'tab custom-tab';
-								tab.textContent = tabName;
+								tab.textContent = tabsData.tab_display_names?.[tabName] || tabName;
+								tab.className = 'tab custom-tab';
 								tab.onclick = () => {
 									customTabsContainer.querySelectorAll('.custom-tab').forEach(tab => tab.classList.remove('active'));
 									tab.classList.add('active');

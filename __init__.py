@@ -26,7 +26,7 @@ def load_tabs_data():
                 return json.load(f)
         except Exception as e:
             print(f"Error loading tabs data: {str(e)}")
-    return {"tabs": [], "image_tabs": {}}
+    return {"tabs": [], "image_tabs": {}, "tab_display_names": {}}
 
 # Save tab data
 def save_tabs_data(data):
@@ -109,6 +109,9 @@ def enhanced_input_types(cls):
         if folder_name and folder_name not in folder_tabs:
             tabs_data["tabs"].append(folder_name)
             folder_tabs.add(folder_name)
+            if "tab_display_names" not in tabs_data:
+                tabs_data["tab_display_names"] = {}
+            tabs_data["tab_display_names"][folder_name] = folder_name
 
         for file in files:
             if not folder_paths.filter_files_content_types(files, ["image"]):
@@ -158,6 +161,7 @@ async def delete_file(request):
     try:
         data = await request.json()
         filename = data.get('filename').replace("/", "\\")
+        filenamejson = data.get('filename')
         if not filename:
             return web.Response(status=400, text="Filename not provided")
 
@@ -169,8 +173,8 @@ async def delete_file(request):
 
         # Remove file from tabs
         tabs_data = load_tabs_data()
-        if filename in tabs_data["image_tabs"]:
-            del tabs_data["image_tabs"][filename]
+        if filenamejson in tabs_data["image_tabs"]:
+            del tabs_data["image_tabs"][filenamejson]
             save_tabs_data(tabs_data)
 
         # Delete thumbnail if exists
