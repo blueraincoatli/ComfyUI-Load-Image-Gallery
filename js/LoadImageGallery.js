@@ -7,65 +7,71 @@ const ext = {
     async init() {
         const ctxMenu = LiteGraph.ContextMenu;
         const style = document.createElement('style');
-style.textContent = `
-    .comfy-context-menu-filter, .tabs {
-        grid-column: 1 / -1;
-    }
-    .image-entry {
-        width: 80px;
-        height: 80px;
-        background-size: cover;
-        background-position: center;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        font-size: 0!important;
-        position: relative;
-    }
-    .delete-button {
-        position: absolute;
-        top: 2px;
-        right: 2px;
-        width: 20px;
-        height: 20px;
-        background-color: rgba(255, 0, 0, 0.7);
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        justify-content: center;
-        cursor: pointer;
-        font-size: 14px !important;
-    }
-    .tab-button {
-        position: absolute;
-        top: 2px;
-        left: 2px;
-        width: 20px;
-        height: 20px;
-        background-color: rgba(0, 100, 255, 0.7);
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        justify-content: center;
-        cursor: pointer;
-        font-size: 14px !important;
-    }
-    .tab {
-        padding: 5px 10px;
-        margin-right: 5px;
-        background-color: transparent;
-        border: none;
-        cursor: pointer;
-    }
-    .tab:last-child {
-        margin-right: 0;
-    }
-	.tab.active {
-			  border-bottom: 3px solid #64b5f6;
+		style.textContent = `
+			.comfy-context-menu-filter {
+				grid-column: 1 / -1;
 			}
-`;
+			.comfy-context-menu-filter, .tabs {
+				grid-column: 1 / -1;
+			    display: flex;
+				flex-wrap: wrap;
+				max-width: 100%;
+			}
+			.image-entry {
+				width: 80px;
+				height: 80px;
+				background-size: cover;
+				background-position: center;
+				border-radius: 4px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				overflow: hidden;
+				font-size: 0!important;
+				position: relative;
+			}
+			.delete-button {
+				position: absolute;
+				top: 2px;
+				right: 2px;
+				width: 20px;
+				height: 20px;
+				background-color: rgba(255, 0, 0, 0.7);
+				color: white;
+				border-radius: 50%;
+				display: flex;
+				justify-content: center;
+				cursor: pointer;
+				font-size: 14px !important;
+			}
+			.tab-button {
+				position: absolute;
+				top: 2px;
+				left: 2px;
+				width: 20px;
+				height: 20px;
+				background-color: rgba(0, 100, 255, 0.7);
+				color: white;
+				border-radius: 50%;
+				display: flex;
+				justify-content: center;
+				cursor: pointer;
+				font-size: 14px !important;
+			}
+			.tab {
+				padding: 5px 10px;
+				margin-right: 5px;
+				background-color: transparent;
+				border: none;
+				cursor: pointer;
+			}
+			.tab:last-child {
+				margin-right: 0;
+			}
+			.tab.active {
+					  border-bottom: 3px solid #64b5f6;
+					}
+		`;
         document.head.append(style);
         let FirstRun = true;
 		
@@ -360,19 +366,24 @@ style.textContent = `
 							if (FirstRun) {
 								CleanDB(values);
 							}
+							if (displayedItems.length > 30) {
+								UpdatePosition();
+							}
 							options.scroll_speed = 0.5;
 							ctx.root.style.display = 'grid';
-							ctx.root.style.gridTemplateColumns = 'repeat(4, 88px)';
+							ctx.root.style.gridTemplateColumns = 'repeat(auto-fit, minmax(88px, 1fr))';
+							ctx.root.style.width = "max(352px, 100%)";
+							ctx.root.style.maxWidth = "800px";
+							items.forEach((entry, index) => {
+								const filename = values[index];
+								entry.classList.add('image-entry');
+								entry.setAttribute('title', filename);
+							});
 							// Preload all thumbnails at once
 							preloadThumbnailsBatch(values).then(() => {
-								if (displayedItems.length > 30) {
-									UpdatePosition();
-								}
 								
 								items.forEach((entry, index) => {
 									const filename = values[index];
-									entry.classList.add('image-entry');
-									entry.setAttribute('title', filename);
 									
 									// Use cached thumbnail or load a new one
 									let thumbnailUrl = window.thumbnailCache.get(filename);
