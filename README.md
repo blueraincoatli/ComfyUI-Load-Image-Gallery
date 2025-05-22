@@ -3,5 +3,5 @@
 ## Features
 - Image Gallery
 - Tabs for Subfolders and Symlink
-- Custom tabs
-![1942](https://github.com/user-attachments/assets/63d6606b-6f3f-4086-8f31-652fd0c2f908)
+
+![4602](https://github.com/user-attachments/assets/a13c771c-81fb-46c8-8d22-66c80d2d370b)
