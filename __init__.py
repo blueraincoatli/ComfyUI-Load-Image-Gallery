@@ -6,8 +6,28 @@ from aiohttp import web
 import folder_paths
 from nodes import LoadImage
 
+try:
+    from nodes import LoadImageMask
+    HAS_LOAD_IMAGE_MASK = True
+except ImportError:
+    HAS_LOAD_IMAGE_MASK = False
+
+try:
+    from nodes import LoadImageOutput
+    HAS_LOAD_IMAGE_OUTPUT = True
+except ImportError:
+    HAS_LOAD_IMAGE_OUTPUT = False
+    
 # Save the original INPUT_TYPES method
-original_input_types = LoadImage.INPUT_TYPES
+original_input_types = {
+    "LoadImage": LoadImage.INPUT_TYPES
+}
+
+if HAS_LOAD_IMAGE_MASK:
+    original_input_types["LoadImageMask"] = LoadImageMask.INPUT_TYPES
+
+if HAS_LOAD_IMAGE_OUTPUT:
+    original_input_types["LoadImageOutput"] = LoadImageOutput.INPUT_TYPES
 
 # Path to the thumbnails directory
 THUMBNAILS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "thumbnails")
@@ -50,11 +70,7 @@ def create_thumbnail(file_path, size=(80, 80)):
         print(f"Error creating thumbnail for {file_path}: {str(e)}")
         return None
 
-@classmethod
-def enhanced_input_types(cls):
-    original_result = original_input_types()
-    original_files = original_result["required"]["image"][0]
-
+def get_enhanced_files():
     input_dir = folder_paths.get_input_directory()
     exclude_folders = ["clipspace", "3d"]
     additional_files = []
@@ -75,7 +91,6 @@ def enhanced_input_types(cls):
 
             file_path = os.path.join(root, file)
             rel_file_path = os.path.relpath(file_path, input_dir)
-            # rel_file_path = rel_file_path.replace("\\", "/")
 
             additional_files.append(rel_file_path)
 
@@ -83,11 +98,65 @@ def enhanced_input_types(cls):
             if not os.path.exists(thumbnail_path):
                 create_thumbnail(file_path)
 
+    return sorted(additional_files)
+
+@classmethod
+def enhanced_load_image_input_types(cls):
+    original_result = original_input_types["LoadImage"]()
+    original_files = original_result["required"]["image"][0]
+    additional_files = get_enhanced_files()
+    
     combined_files = original_files + additional_files
     original_result["required"]["image"] = (sorted(combined_files), original_result["required"]["image"][1])
     return original_result
 
-LoadImage.INPUT_TYPES = enhanced_input_types
+LoadImage.INPUT_TYPES = enhanced_load_image_input_types
+
+if HAS_LOAD_IMAGE_MASK:
+    @classmethod
+    def enhanced_load_image_mask_input_types(cls):
+        original_result = original_input_types["LoadImageMask"]()
+        if "required" in original_result and "image" in original_result["required"]:
+            param_name = "image"
+        elif "required" in original_result and "mask" in original_result["required"]:
+            param_name = "mask"
+        else:
+            return original_result
+        
+        original_files = original_result["required"][param_name][0]
+        additional_files = get_enhanced_files()
+        
+        if isinstance(original_files, list):
+            combined_files = original_files + additional_files
+            original_result["required"][param_name] = (sorted(combined_files), original_result["required"][param_name][1])
+        
+        return original_result
+    
+    LoadImageMask.INPUT_TYPES = enhanced_load_image_mask_input_types
+
+if HAS_LOAD_IMAGE_OUTPUT:
+    @classmethod
+    def enhanced_load_image_output_input_types(cls):
+        original_result = original_input_types["LoadImageOutput"]()
+        if "required" in original_result and "image" in original_result["required"]:
+            param_name = "image"
+        else:
+            return original_result
+        
+        original_files = original_result["required"][param_name][0]
+        additional_files = get_enhanced_files()
+        
+        if isinstance(original_files, list):
+            combined_files = original_files + additional_files
+            original_result["required"][param_name] = (sorted(combined_files), original_result["required"][param_name][1])
+        elif isinstance(original_files, str):
+            print(f"Warning: original_files for {param_name} is a string, not a list")
+            original_result["required"][param_name] = (original_files, original_result["required"][param_name][1])
+        
+        return original_result
+    
+    LoadImageOutput.INPUT_TYPES = enhanced_load_image_output_input_types
+
 
 try:
     from send2trash import send2trash
