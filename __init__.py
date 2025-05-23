@@ -97,7 +97,6 @@ def get_enhanced_files():
             thumbnail_path = get_thumbnail_path(rel_file_path)
             if not os.path.exists(thumbnail_path):
                 create_thumbnail(file_path)
-
     return sorted(additional_files)
 
 @classmethod
@@ -150,7 +149,7 @@ if HAS_LOAD_IMAGE_OUTPUT:
             combined_files = original_files + additional_files
             original_result["required"][param_name] = (sorted(combined_files), original_result["required"][param_name][1])
         elif isinstance(original_files, str):
-            print(f"Warning: original_files for {param_name} is a string, not a list")
+            # print(f"Warning: original_files for {param_name} is a string, not a list")
             original_result["required"][param_name] = (original_files, original_result["required"][param_name][1])
         
         return original_result
