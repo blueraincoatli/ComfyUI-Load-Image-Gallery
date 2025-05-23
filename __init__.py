@@ -36,7 +36,7 @@ if not os.path.exists(THUMBNAILS_DIR):
 
 # Get safe filename for thumbnail
 def get_thumbnail_path(filename):
-    safe_filename = os.path.basename(filename).replace(" ", "_")
+    safe_filename = filename.replace(os.sep, "__").replace("/", "__").replace("\\", "__").replace(" ", "_")
     return os.path.join(THUMBNAILS_DIR, f"{safe_filename}.webp")
 
 # Create thumbnail from image file
@@ -62,7 +62,7 @@ def create_thumbnail(file_path, size=(80, 80)):
         img = img.resize(size, Image.LANCZOS)
 
         # Save as WebP
-        thumbnail_path = get_thumbnail_path(os.path.basename(file_path))
+        thumbnail_path = get_thumbnail_path(file_path.replace(folder_paths.get_input_directory() + os.sep, ""))
         img.save(thumbnail_path, "WEBP", quality=80)
 
         return thumbnail_path
@@ -194,7 +194,7 @@ async def delete_file(request):
         print(f"Error deleting file: {str(e)}")
         return web.Response(status=500, text="Internal server error")
 
-@PromptServer.instance.routes.get("/get_thumbnail/{filename}")
+@PromptServer.instance.routes.get("/get_thumbnail/{filename:.*}")
 async def get_thumbnail(request):
     try:
         filename = request.match_info['filename']
@@ -258,9 +258,10 @@ async def cleanup_thumbnails(request):
         thumbnails = [f for f in os.listdir(THUMBNAILS_DIR) if f.endswith('.webp')]
         removed_count = 0
 
+        active_thumbnails = [get_thumbnail_path(f).split(os.sep)[-1] for f in active_files]
+
         for thumbnail in thumbnails:
-            original_filename = os.path.splitext(thumbnail)[0].replace("_", " ")
-            if original_filename not in active_files:
+            if thumbnail not in active_thumbnails:
                 os.remove(os.path.join(THUMBNAILS_DIR, thumbnail))
                 removed_count += 1
 
