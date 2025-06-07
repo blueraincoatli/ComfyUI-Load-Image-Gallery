@@ -244,7 +244,7 @@ const ext = {
 					
 					
 					//Tabs
-					if (!rgthreeon) {
+					if (!rgthreeon && valuesnames.some(value => value.includes('.'))) {
 						const hasBackslash = valuesnames.some(value => value.includes('\\'));
 						const hasForwardSlash = valuesnames.some(value => value.includes('/'));
 
